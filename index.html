@@ -77,18 +77,38 @@
                 this.createReticle();
                 
                 // Setup ML model for CS students
-                await this.loadMLModel();
-                
-                // Create AR button
-                const arButton = ARButton.createButton(this.renderer, {
-                    requiredFeatures: ['hit-test'],
-                    optionalFeatures: ['dom-overlay'],
-                    domOverlay: { root: document.body }
-                });
-                document.body.appendChild(arButton);
-                
-                // Setup XR session events
-                this.setupXREvents();
+                // Setup ML model for CS students
+await this.loadMLModel();
+
+// ===== AR Support =====
+if ('xr' in navigator) {
+
+    const arButton =
+        ARButton.createButton(
+            this.renderer,
+            {
+                optionalFeatures: ['dom-overlay'],
+                domOverlay: {
+                    root: document.body
+                }
+            }
+        );
+
+    document.body.appendChild(arButton);
+
+    document.getElementById('status')
+        .textContent =
+        'AR підтримується';
+
+} else {
+
+    document.getElementById('status')
+        .textContent =
+        'AR не підтримується — Desktop Mode';
+}
+
+// Setup XR session events
+this.setupXREvents();
                 
                 // Setup controllers for interaction
                 this.setupControllers();
