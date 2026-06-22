@@ -39,9 +39,32 @@ body{
 
 <div id="ui">
     <h2>DecentraVision XR</h2>
+
+    <input
+        id="messageInput"
+        type="text"
+        placeholder="Введіть повідомлення"
+        style="width:220px;margin-bottom:5px;"
+    >
+
+    <br>
+
+    <button id="sendBtn">
+        Надіслати через Blockchain
+    </button>
+
+    <button id="disableBtn">
+        Вимкнути блок 3
+    </button>
+
+    <div id="status" style="margin-top:10px;">
+        Очікування...
+    </div>
+
     <div id="tx">
         Transactions: 0
     </div>
+
     <div id="ml">
         ML: Waiting...
     </div>
@@ -109,7 +132,7 @@ scene.add(light);
 
 // blockchain
 const chain = [];
-
+const blockData = [];
 for(let i=0;i<5;i++){
 
     const block =
@@ -128,7 +151,13 @@ for(let i=0;i<5;i++){
 
     scene.add(block);
 
-    chain.push(block);
+block.userData = {
+    active:true,
+    storedData:""
+};
+
+chain.push(block);
+blockData.push("");
 }
 
 // defi nodes
@@ -173,7 +202,66 @@ const txSphere =
     );
 
 scene.add(txSphere);
+function simpleHash(text){
 
+    let hash = 0;
+
+    for(let i=0;i<text.length;i++){
+
+        hash =
+        ((hash << 5) - hash)
+        + text.charCodeAt(i);
+
+        hash |= 0;
+    }
+
+    return Math.abs(hash).toString();
+}
+
+let transferIndex = -1;
+let currentMessage = "";
+
+document
+.getElementById("sendBtn")
+.addEventListener("click",()=>{
+
+    currentMessage =
+        document
+        .getElementById("messageInput")
+        .value;
+
+    if(!currentMessage) return;
+
+    transferIndex = 0;
+
+    document
+    .getElementById("status")
+    .innerText =
+    "Передача розпочата";
+});
+
+document
+.getElementById("disableBtn")
+.addEventListener("click",()=>{
+
+    const block = chain[2];
+
+    block.userData.active =
+        !block.userData.active;
+
+    block.material.color.set(
+        block.userData.active
+        ? 0x00ffff
+        : 0xff0000
+    );
+
+    document
+    .getElementById("status")
+    .innerText =
+        block.userData.active
+        ? "Блок 3 увімкнено"
+        : "Блок 3 вимкнено";
+});
 let progress = 0;
 let txCount = 0;
 
@@ -225,6 +313,79 @@ function animate(){
         progress
     );
 
+    if(
+    transferIndex >= 0 &&
+    transferIndex < chain.length
+){
+
+    const block =
+        chain[transferIndex];
+
+    if(!block.userData.active){
+
+        document
+        .getElementById("status")
+        .innerText =
+        "Передача зупинена на блоці "
+        + (transferIndex + 1);
+
+        transferIndex = -1;
+    }
+    else{
+
+        const incomingData =
+            transferIndex === 0
+            ? currentMessage
+            : blockData[transferIndex - 1];
+
+        const hashed =
+            simpleHash(incomingData);
+
+        blockData[transferIndex] =
+            hashed;
+
+        block.scale.set(
+            1.3,
+            1.3,
+            1.3
+        );
+
+        setTimeout(()=>{
+
+            block.scale.set(
+                1,
+                1,
+                1
+            );
+
+        },200);
+
+        document
+        .getElementById("status")
+        .innerText =
+            "Блок "
+            + (transferIndex + 1)
+            + " отримав дані: "
+            + hashed;
+
+        transferIndex++;
+    }
+
+    if(
+        transferIndex === chain.length
+    ){
+
+        document
+        .getElementById("status")
+        .innerText =
+        "Передачу завершено. Фінальний хеш: "
+        + blockData[
+            chain.length - 1
+        ];
+
+        transferIndex = -1;
+    }
+}
     controls.update();
 
     renderer.render(
